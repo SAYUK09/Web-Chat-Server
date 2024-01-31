@@ -52,6 +52,10 @@ io.on("connection", (socket) => {
   socket.on("join", (room) => {
     console.log("room", room);
   });
+
+  socket.on("sendMessage", ({ roomId, message, sender }) => {
+    io.emit("messageReceived", { roomId, message, sender });
+  });
 });
 
 server.listen(5000, () => console.log(`Listening on port 5000`));
