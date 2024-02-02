@@ -18,6 +18,10 @@ const messageSchema = new mongoose.Schema(
       ref: "Room",
       required: true,
     },
+    type: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );

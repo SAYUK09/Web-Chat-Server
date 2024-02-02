@@ -77,10 +77,33 @@ app.post("/users", async (req, res) => {
   }
 });
 
+app.get("/rooms/:roomId/messages", async (req, res) => {
+  const roomId = req.params.roomId;
+
+  try {
+    const messages = await Message.find({ room: roomId }).populate(
+      "sender",
+      "name"
+    );
+
+    const formattedMessages = messages.map((message) => ({
+      id: message._id,
+      sender: message.sender.name,
+      message: message.message,
+      type: message.type,
+    }));
+
+    res.json(formattedMessages);
+  } catch (error) {
+    console.error("Error fetching messages:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 app.post("/rooms/:roomId/messages", async (req, res) => {
   try {
     const { roomId } = req.params;
-    const { userId, message } = req.body;
+    const { userId, message, type } = req.body;
 
     const room = await Room.findById(roomId);
     if (!room) {
@@ -96,6 +119,7 @@ app.post("/rooms/:roomId/messages", async (req, res) => {
       sender: userId,
       message,
       room: roomId,
+      type,
     });
 
     const savedMessage = await newMessage.save();
@@ -109,12 +133,22 @@ app.post("/rooms/:roomId/messages", async (req, res) => {
 io.on("connection", (socket) => {
   console.log("New client connected");
 
-  socket.on("join", (room) => {
-    console.log("room", room);
+  let currentRoom = null;
+
+  socket.on("join", (roomId) => {
+    if (currentRoom) {
+      socket.leave(currentRoom);
+    }
+    currentRoom = roomId;
+    socket.join(roomId);
+    console.log("User joined room:", roomId);
   });
 
-  socket.on("sendMessage", ({ roomId, message, sender }) => {
-    io.emit("messageReceived", { roomId, message, sender });
+  socket.on("sendMessage", ({ roomId, message, sender, type }) => {
+    console.log(roomId, message, sender, type);
+    if (roomId === currentRoom) {
+      io.to(roomId).emit("messageReceived", { roomId, message, sender, type });
+    }
   });
 });
 
