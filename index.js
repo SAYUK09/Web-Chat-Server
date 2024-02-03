@@ -91,6 +91,7 @@ app.get("/rooms/:roomId/messages", async (req, res) => {
       sender: message.sender.name,
       message: message.message,
       type: message.type,
+      timestamp: message.createdAt,
     }));
 
     res.json(formattedMessages);
@@ -147,7 +148,14 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", ({ roomId, message, sender, type }) => {
     console.log(roomId, message, sender, type);
     if (roomId === currentRoom) {
-      io.to(roomId).emit("messageReceived", { roomId, message, sender, type });
+      const timestamp = new Date().toISOString();
+      io.to(roomId).emit("messageReceived", {
+        roomId,
+        message,
+        sender,
+        type,
+        timestamp,
+      });
     }
   });
 });
